@@ -28,8 +28,8 @@ embeddings = GoogleGenerativeAIEmbeddings(
 # 4. INITIALIZE CHROMA (Empty)
 # We initialize the object first so we can add to it batch-by-batch
 vector_store = Chroma(
-    persist_directory="./chroma_db",
-    embedding_function=embeddings
+    embedding_function=embeddings,
+    persist_directory="./chroma_db"
 )
 
 # 5. THE BATCH LOADER (Scalability Logic)
@@ -39,6 +39,7 @@ def load_in_batches(all_chunks, batch_size=20):
         batch = all_chunks[i : i + batch_size]
         
         # add_texts is better for scale than from_texts
+        print("yay")
         vector_store.add_texts(texts=batch)
         
         print(f"✅ Success: Added chunks {i} to {i + len(batch)}")
