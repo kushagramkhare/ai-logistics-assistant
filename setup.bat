@@ -1,5 +1,5 @@
 @echo off
-pip install -r requirements.txt
+pip install -r req.txt
 
 echo.
 echo ==============================
