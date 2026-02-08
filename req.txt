@@ -20,3 +20,13 @@ numpy==1.26.4
 protobuf==5.29.6
 packaging==25.0
 tenacity==8.5.0
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.3.1+cpu
+torchvision==0.18.1+cpu
+torchaudio==2.3.1+cpu
+
+pytesseract==0.3.10
+Pillow==10.3.0
+pdf2image==1.17.0
+
