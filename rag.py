@@ -12,12 +12,13 @@ from langchain_core.messages import HumanMessage, AIMessage
 # -------------------- 1. ENV SETUP --------------------
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-chat_history = []
+chatHistory = []
 
 # -------------------- 2. LOAD SCRAPED JSON --------------------
 
 with open("website_data.json", "r", encoding="utf-8") as f:
     data = json.load(f)
+    print("Website data found!")
 
 texts = []
 metadatas = []
@@ -38,7 +39,7 @@ for pdf in data["pdfs"]:
 
 # -------------------- 3. VECTOR STORE SETUP --------------------
 
-text_splitter = RecursiveCharacterTextSplitter(
+textSplitter = RecursiveCharacterTextSplitter(
     chunk_size=1000,
     chunk_overlap=150
 )
@@ -47,7 +48,7 @@ split_texts = []
 split_metadatas = []
 
 for text, meta in zip(texts, metadatas):
-    chunks = text_splitter.split_text(text)
+    chunks = textSplitter.split_text(text)
     split_texts.extend(chunks)
     split_metadatas.extend([meta] * len(chunks))
 
@@ -70,11 +71,11 @@ model = ChatGoogleGenerativeAI(
     temperature=0
 )
 
-def rewrite_query(chat_history, latest_query):
+def rewrite_query(chatHistory, latest_query):
     history_text = "\n".join(
         [f"User: {m.content}" if isinstance(m, HumanMessage)
          else f"Assistant: {m.content}"
-         for m in chat_history[-6:]]
+         for m in chatHistory[-6:]]
     )
 
     prompt = f"""
@@ -89,29 +90,34 @@ Latest User Question:
 Rewrite the latest question into a clear, standalone search query.
 Do NOT answer it. Only rewrite.
 """
-
-    return model.invoke(prompt).content.strip()
+    rewrittenQuery = model.invoke(prompt).content.strip()
+    print("Query rewritten accorinding to chat history for better context:")
+    print(rewrittenQuery)
+    return rewrittenQuery
 
 # -------------------- 5. TOOL --------------------
 
 @tool
 def logistics_search(query: str) -> str:
-    """Search the local knowledge base and return relevant information with sources."""
+    """Search the local knowledge base and return relevant information with sources using soft relevance scoring."""
     
-    query = rewrite_query(chat_history, query)
+    # Step A: Retrieve
+    query = rewrite_query(chatHistory, query)
     docs = retriever.invoke(query)
 
     if not docs:
         return "No information found in the local database."
 
-    context = []
+    # Collect context and sources
+    context_chunks = []
     sources = set()
 
     for doc in docs:
-        context.append(doc.page_content)
+        context_chunks.append(doc.page_content)
         sources.add(doc.metadata.get("source", "unknown"))
 
-    context_text = "\n".join(context)
+    context_text = "\n".join(context_chunks)
+    # Step D: Return context + sources
     sources_text = "\n".join(f"- {s}" for s in sources)
 
     return f"""
@@ -120,6 +126,7 @@ def logistics_search(query: str) -> str:
 Sources:
 {sources_text}
 """
+
 
 # -------------------- 6. AGENT --------------------
 
@@ -130,7 +137,7 @@ agent = create_agent(
         "You are a helpful assistant. "
         "Always use the logistics_search tool to find facts. "
         "Cite the provided sources in your answer. "
-        "If the information is missing or irrelevant, say so honestly."
+        "If no information found,say so"
     ),
 )
 
@@ -138,19 +145,20 @@ agent = create_agent(
 
 if __name__ == "__main__":
     try:
-        print("🚀 System Online...")
+        print("System Online...")
+        print("Hello, how can I help you today?\n")
         while True:
             user_query = input()
             if user_query.lower() in ["exit", "quit"]:
                 break
 
-            chat_history.append(HumanMessage(content=user_query))
-            res = agent.invoke({"messages": chat_history})
+            chatHistory.append(HumanMessage(content=user_query))
+            res = agent.invoke({"messages": chatHistory})
 
             final_answer = res["messages"][-1]
             print("\n✨ ANSWER:\n", final_answer.text)
 
-            chat_history.append(AIMessage(content=final_answer.text))
+            chatHistory.append(AIMessage(content=final_answer.text))
 
     except Exception as e:
         print(f"❌ Error: {e}")

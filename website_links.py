@@ -119,7 +119,7 @@ def bfs(start_url):
         
         global count
         count += 1
-        if count==20 : break
+        if count==50 : break
 
 # ------------------ RUN ------------------
 
