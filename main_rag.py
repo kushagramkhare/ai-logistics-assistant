@@ -1,6 +1,6 @@
 import os
 import json
-import config  # still allowed if you want other configs
+import api_config  # still allowed if you want other configs
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.vectorstores import FAISS

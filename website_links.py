@@ -38,22 +38,34 @@ def is_english(url):
     )
 
 
-def extract_clean_text(soup):
-    # remove junk
+def extract_structured_content(soup):
+    # Remove unwanted elements
     for tag in soup(["script", "style", "nav", "header", "footer", "aside", "noscript"]):
         tag.decompose()
 
-    texts = []
-    for tag in soup.find_all(["p", "h1", "h2", "h3", "li"]):
+    structured_data = []
+    current_heading = "General"
+
+    for tag in soup.find_all(["h1", "h2", "h3", "p", "li"]):
         text = tag.get_text(" ", strip=True)
-        if len(text) > 30:
-            texts.append(text)
 
-    text = " ".join(texts)
-    text = re.sub(r"\s+", " ", text)
-    text = re.sub(r"[^\x00-\x7F]+", " ", text)
+        # Skip tiny noise text
+        if len(text) < 30:
+            continue
 
-    return text.strip()
+        # Clean whitespace + remove non-ascii
+        text = re.sub(r"\s+", " ", text)
+        text = re.sub(r"[^\x00-\x7F]+", " ", text)
+
+        if tag.name in ["h1", "h2", "h3"]:
+            current_heading = text
+        else:
+            structured_data.append({
+                "heading": current_heading,
+                "content": text
+            })
+
+    return structured_data
 
 # ------------------ CRAWLER ------------------
 count =0
@@ -72,14 +84,21 @@ def bfs(start_url):
 
         try:
             response = requests.get(url, timeout=6)
+            if response.status_code != 200:
+                continue
             soup = BeautifulSoup(response.text, "html.parser")
 
             # -------- PAGE TEXT --------
-            page_text = extract_clean_text(soup)
-            if page_text:
+            # -------- PAGE TEXT --------
+            page_title = soup.title.string.strip() if soup.title and soup.title.string else "Untitled Page"
+
+            structured_content = extract_structured_content(soup)
+
+            if structured_content:
                 data["pages"].append({
                     "url": url,
-                    "text": page_text
+                    "title": page_title,
+                    "sections": structured_content
                 })
 
             # -------- LINKS --------

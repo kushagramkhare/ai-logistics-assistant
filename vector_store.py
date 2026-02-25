@@ -1,6 +1,6 @@
 import os
 import json
-import config  # still allowed if you want other configs
+import api_config  # still allowed if you want other configs
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.vectorstores import FAISS
@@ -23,18 +23,37 @@ with open("website_data.json", "r", encoding="utf-8") as f:
 texts = []
 metadatas = []
 
-for page in data["pages"]:
-    texts.append(page["text"])
-    metadatas.append({
-        "source": page["url"],
-        "type": "html"
-    })
+# -------- HTML PAGES --------
+for page in data.get("pages", []):
+    page_title = page.get("title", "Untitled Page")
+    page_url = page.get("url", "unknown")
 
-for pdf in data["pdfs"]:
-    texts.append(pdf["text"])
+    for section in page.get("sections", []):
+        heading = section.get("heading", "General")
+        content = section.get("content", "")
+
+        # Combine intelligently for better embeddings
+        full_text = f"Page Title: {page_title}\nHeading: {heading}\nContent: {content}"
+
+        texts.append(full_text)
+        metadatas.append({
+            "source": page_url,
+            "type": "html",
+            "title": page_title,
+            "heading": heading
+        })
+
+# -------- PDFs (unchanged logic but slightly improved) --------
+for pdf in data.get("pdfs", []):
+    pdf_text = pdf.get("text", "")
+    pdf_url = pdf.get("url", "unknown")
+
+    texts.append(pdf_text)
     metadatas.append({
-        "source": pdf["url"],
-        "type": "pdf"
+        "source": pdf_url,
+        "type": "pdf",
+        "title": "PDF Document",
+        "heading": "Full Document"
     })
 
 # -------------------- 3. VECTOR STORE SETUP --------------------
