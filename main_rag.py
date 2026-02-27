@@ -1,3 +1,9 @@
+"""
+The main rag pipeline
+Builds a retriever tool for retrieval of relevant chunks
+A query rewriter for rewriting current query accordint to chat history for better context
+Builds a logitics tool which returns the appropriate response and sources to the LLM 
+"""
 import os
 import json
 import api_config  # still allowed if you want other configs
@@ -9,37 +15,39 @@ from langchain_core.tools import tool
 from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage, AIMessage
 
-# -------------------- 1. ENV SETUP --------------------
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-chatHistory = []
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1" #disabling gpu usage 
+chat_history = [] #list for storing the user queries and responses as well. Only the ones during current runtime.
 
-# -------------------- 2. LOAD SCRAPED JSON --------------------
 
-embeddings = HuggingFaceEmbeddings(
+embeddings = HuggingFaceEmbeddings(  #vector embeddings 
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
-vector_store = FAISS.load_local(
+vector_store = FAISS.load_local(   #storing the vector embeddings locally
     "faiss_store",
     embeddings,
     allow_dangerous_deserialization=True
 )
 
-retriever = vector_store.as_retriever(search_kwargs={"k": 8})
+retriever = vector_store.as_retriever(search_kwargs={"k": 8}) #building a retriever tool which returns top 8 relevant chunks
+#as_retriever is a inbuilt langchain function
 
-# -------------------- 4. MODEL --------------------
-
-model = ChatGoogleGenerativeAI(
+model = ChatGoogleGenerativeAI( #LLM model used for query rewriting and giving final responses
     model="gemini-2.5-flash",
-    temperature=0
+    temperature=0 #so that the model is deterministic and doesnt hallucinate
 )
 
-def rewrite_query(chatHistory, latest_query):
+"""
+Function for rewriting a query according to the chat history
+appends the user queries and LLM responses and sends it to an LLM
+LLM tries to make the current query sound more contextual and relevant to the previous queries for better retrieval
+"""
+def f_rewrite_query(chat_history, latest_query): 
     history_text = "\n".join(
         [f"User: {m.content}" if isinstance(m, HumanMessage)
          else f"Assistant: {m.content}"
-         for m in chatHistory[-6:]]
+         for m in chat_history[-6:]]
     )
 
     prompt = f"""
@@ -54,25 +62,30 @@ Latest User Question:
 Rewrite the latest question into a clear, standalone search query.
 Do NOT answer it. Only rewrite.
 """
-    rewrittenQuery = model.invoke(prompt).content.strip()
+    rewritten_query = model.invoke(prompt).content.strip()
     print("Query rewritten accorinding to chat history for better context:")
-    print(rewrittenQuery)
-    return rewrittenQuery
+    print(rewritten_query)
+    return rewritten_query
 
-# -------------------- 5. TOOL --------------------
 
+"""
+The tool below is the main tool of the entire pipeline.
+This tool uses the retriever tool for receiving the chunks of the content that is relevant to the query.
+These chunks are saved in the 'docs' list
+If the list is empty then the model will respond saying no relevant info available
+Then the docs list is separated into actual information and source links(metadata)
+"""
 @tool
-def logistics_search(query: str) -> str:
+def f_logistics_search(query: str) -> str:
     """Search the local knowledge base and return relevant information with sources using soft relevance scoring."""
     
     # Step A: Retrieve
-    query = rewrite_query(chatHistory, query)
+    query = f_rewrite_query(chat_history, query)
     docs = retriever.invoke(query)
 
     if not docs:
         return "No information found in the local database."
 
-    # Collect context and sources
     context_chunks = []
     sources = set()
 
@@ -81,7 +94,7 @@ def logistics_search(query: str) -> str:
         sources.add(doc.metadata.get("source", "unknown"))
 
     context_text = "\n".join(context_chunks)
-    # Step D: Return context + sources
+    
     sources_text = "\n".join(f"- {s}" for s in sources)
 
     return f"""
@@ -92,11 +105,9 @@ Sources:
 """
 
 
-# -------------------- 6. AGENT --------------------
-
-agent = create_agent(
+agent = create_agent( #creating the agent using the model and tool which were defined above and a system prompt for a more systematic reponse.
     model=model,
-    tools=[logistics_search],
+    tools=[f_logistics_search],
     system_prompt=(
         "You are a helpful assistant.\n\n"
         "Always use the logistics_search tool to find facts.\n\n"
@@ -110,7 +121,9 @@ agent = create_agent(
     ),
 )
 
-# -------------------- 7. RUN --------------------
+"""
+Taking input and generating responses!
+"""
 
 if __name__ == "__main__":
     try:
@@ -121,13 +134,13 @@ if __name__ == "__main__":
             if user_query.lower() in ["exit", "quit"]:
                 break
 
-            chatHistory.append(HumanMessage(content=user_query))
-            res = agent.invoke({"messages": chatHistory})
+            chat_history.append(HumanMessage(content=user_query))
+            res = agent.invoke({"messages": chat_history})
 
-            final_answer = res["messages"][-1]
-            print("\n✨ ANSWER:\n", final_answer.text)
+            final_answer = res["messages"][-1].text
+            print("\nANSWER:\n", final_answer)
 
-            chatHistory.append(AIMessage(content=final_answer.text))
+            chat_history.append(AIMessage(content=final_answer))
 
     except Exception as e:
         print(f"❌ Error: {e}")

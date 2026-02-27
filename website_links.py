@@ -1,3 +1,4 @@
+
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
@@ -6,7 +7,7 @@ import time
 import re
 import json
 
-from png_pdf import pdfContent  # must return extracted text
+from pdf_processing import f_pdf_content  # must return extracted text
 
 BASE_URL = "https://iitj.ac.in/"
 OUTPUT_JSON = "website_data.json"
@@ -21,11 +22,11 @@ data = {
 
 # ------------------ HELPERS ------------------
 
-def is_internal(url):
+def f_is_internal(url):
     return urlparse(url).netloc == urlparse(BASE_URL).netloc
 
 
-def is_english(url):
+def f_is_english(url):
     url = url.lower()
     return not (
         "/hi/" in url
@@ -38,7 +39,7 @@ def is_english(url):
     )
 
 
-def extract_structured_content(soup):
+def f_extract_structured_content(soup):
     # Remove unwanted elements
     for tag in soup(["script", "style", "nav", "header", "footer", "aside", "noscript"]):
         tag.decompose()
@@ -70,20 +71,20 @@ def extract_structured_content(soup):
 # ------------------ CRAWLER ------------------
 count =0
 
-def bfs(start_url):
+def f_bfs(start_url):
     queue = deque([start_url])
 
     while queue:
         url = queue.popleft()
 
-        if url in visited_links or not is_internal(url) or not is_english(url):
+        if url in visited_links or not f_is_internal(url) or not f_is_english(url):
             continue
 
-        print("🌐 Visiting:", url)
+        #print("🌐 Visiting:", url)
         visited_links.add(url)
 
         try:
-            response = requests.get(url, timeout=6)
+            response = requests.get(url, timeout=3)
             if response.status_code != 200:
                 continue
             soup = BeautifulSoup(response.text, "html.parser")
@@ -92,7 +93,7 @@ def bfs(start_url):
             # -------- PAGE TEXT --------
             page_title = soup.title.string.strip() if soup.title and soup.title.string else "Untitled Page"
 
-            structured_content = extract_structured_content(soup)
+            structured_content = f_extract_structured_content(soup)
 
             if structured_content:
                 data["pages"].append({
@@ -105,18 +106,18 @@ def bfs(start_url):
             for tag in soup.find_all("a", href=True):
                 link = urljoin(url, tag["href"]).split("#")[0]
 
-                if not is_internal(link) or not is_english(link):
+                if not f_is_internal(link) or not f_is_english(link):
                     continue
 
                 if link.lower().endswith(".pdf"):
                     if link in pdf_links:
                         continue
 
-                    print("📄 PDF found:", link)
+                    #print("📄 PDF found:", link)
                     pdf_links.add(link)
 
                     try:
-                        pdf_text = pdfContent(link)
+                        pdf_text = f_pdf_content(link)
                         if pdf_text.strip():
                             data["pdfs"].append({
                                 "url": link,
@@ -131,18 +132,19 @@ def bfs(start_url):
                         
                         
 
-            time.sleep(1)
+            time.sleep(0.1)
 
         except Exception as e:
             print("❌ Page error:", url, e)
         
         global count
         count += 1
-        if count==50 : break
+        print(count)
+        
 
 # ------------------ RUN ------------------
 
-bfs(BASE_URL)
+f_bfs(BASE_URL)
 
 with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
     json.dump(data, f, ensure_ascii=False, indent=2)

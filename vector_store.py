@@ -12,7 +12,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 # -------------------- 1. ENV SETUP --------------------
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-chatHistory = []
+chat_history = []
 
 # -------------------- 2. LOAD SCRAPED JSON --------------------
 
@@ -58,7 +58,7 @@ for pdf in data.get("pdfs", []):
 
 # -------------------- 3. VECTOR STORE SETUP --------------------
 
-textSplitter = RecursiveCharacterTextSplitter(
+text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=1000,
     chunk_overlap=150
 )
@@ -67,7 +67,7 @@ split_texts = []
 split_metadatas = []
 
 for text, meta in zip(texts, metadatas):
-    chunks = textSplitter.split_text(text)
+    chunks = text_splitter.split_text(text)
     split_texts.extend(chunks)
     split_metadatas.extend([meta] * len(chunks))
 
