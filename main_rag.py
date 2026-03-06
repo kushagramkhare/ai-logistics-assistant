@@ -124,6 +124,12 @@ agent = create_agent( #creating the agent using the model and tool which were de
 """
 Taking input and generating responses!
 """
+def run_rag(user_query: str): #making this function for using the api
+    chat_history.append(HumanMessage(content=user_query))
+    res = agent.invoke({"messages": chat_history})
+    final_answer = res["messages"][-1].text
+    chat_history.append(AIMessage(content=final_answer))
+    return final_answer
 
 if __name__ == "__main__":
     try:
@@ -134,13 +140,9 @@ if __name__ == "__main__":
             if user_query.lower() in ["exit", "quit"]:
                 break
 
-            chat_history.append(HumanMessage(content=user_query))
-            res = agent.invoke({"messages": chat_history})
+            answer = run_rag(user_query)
 
-            final_answer = res["messages"][-1].text
-            print("\nANSWER:\n", final_answer)
-
-            chat_history.append(AIMessage(content=final_answer))
+            print("\nANSWER:\n", answer)
 
     except Exception as e:
         print(f"❌ Error: {e}")
