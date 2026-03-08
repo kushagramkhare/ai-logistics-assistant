@@ -10,14 +10,14 @@ import api_config  # still allowed if you want other configs
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.vectorstores import FAISS
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+#from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.tools import tool
 from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage, AIMessage
 
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1" #disabling gpu usage 
-chat_history = [] #list for storing the user queries and responses as well. Only the ones during current runtime.
+#chat_history = [] #list for storing the user queries and responses as well. Only the ones during current runtime.
 
 
 embeddings = HuggingFaceEmbeddings(  #vector embeddings 
@@ -80,7 +80,7 @@ def f_logistics_search(query: str) -> str:
     """Search the local knowledge base and return relevant information with sources using soft relevance scoring."""
     
     # Step A: Retrieve
-    query = f_rewrite_query(chat_history, query)
+    query = f_rewrite_query([], query)
     docs = retriever.invoke(query)
 
     if not docs:
@@ -124,13 +124,8 @@ agent = create_agent( #creating the agent using the model and tool which were de
 """
 Taking input and generating responses!
 """
-def run_rag(user_query: str): #making this function for using the api
-    chat_history.append(HumanMessage(content=user_query))
-    res = agent.invoke({"messages": chat_history})
-    final_answer = res["messages"][-1].text
-    chat_history.append(AIMessage(content=final_answer))
-    return final_answer
 
+"""
 if __name__ == "__main__":
     try:
         print("System Online...")
@@ -140,9 +135,15 @@ if __name__ == "__main__":
             if user_query.lower() in ["exit", "quit"]:
                 break
 
-            answer = run_rag(user_query)
+            chat_history.append(HumanMessage(content=user_query))
+            res = agent.invoke({"messages": chat_history})
 
-            print("\nANSWER:\n", answer)
+            final_answer = res["messages"][-1].text
+            print("\nANSWER:\n", final_answer)
+
+            chat_history.append(AIMessage(content=final_answer))
 
     except Exception as e:
         print(f"❌ Error: {e}")
+"""
+
