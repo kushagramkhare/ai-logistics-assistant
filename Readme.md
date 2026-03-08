@@ -10,7 +10,7 @@ pip install -r backend/req.txt
 Download from:
 https://github.com/tesseract-ocr/tesseract/releases
 
-Add to PATH.
+Add to PATH
 
 ### 4. Set Gemini API key in env 
 $env:GOOGLE_API_KEY="your_key"
