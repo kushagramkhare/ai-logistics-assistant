@@ -30,7 +30,7 @@ vector_store = FAISS.load_local(   #storing the vector embeddings locally
     allow_dangerous_deserialization=True
 )
 
-retriever = vector_store.as_retriever(search_kwargs={"k": 8}) #building a retriever tool which returns top 8 relevant chunks
+retriever = vector_store.as_retriever(search_kwargs={"k": 20}) #building a retriever tool which returns top 8 relevant chunks
 #as_retriever is a inbuilt langchain function
 
 model = ChatGoogleGenerativeAI( #LLM model used for query rewriting and giving final responses
