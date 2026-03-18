@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect } from "react";
 
+
 export default function Home() {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const sessionId = useRef(Math.random().toString(36).substring(7));
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -28,9 +30,13 @@ export default function Home() {
       headers: {
         "Content-Type": "application/json",
       },
+      // body: JSON.stringify({
+      //   question: input,
+      //   history: messages,
+      // }),
       body: JSON.stringify({
         question: input,
-        history: messages,
+        session_id: sessionId.current,
       }),
     });
 
