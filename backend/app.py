@@ -14,9 +14,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+chat_sessions = {}
+
 class Query(BaseModel):
     question: str
     history: list = []
+    session_id: str
 
 @app.get("/")
 def home():
@@ -25,18 +28,17 @@ def home():
 @app.post("/chat")
 def chat(q: Query):
 
-    messages = []
+    if q.session_id not in chat_sessions:
+        chat_sessions[q.session_id] = []
 
-    for msg in q.history:
-        if msg["role"] == "user":
-            messages.append(HumanMessage(content=msg["content"]))
-        else:
-            messages.append(AIMessage(content=msg["content"]))
+    messages = chat_sessions[q.session_id]
 
     messages.append(HumanMessage(content=q.question))
 
     res = agent.invoke({"messages": messages})
 
     answer = res["messages"][-1].text
+
+    messages.append(AIMessage(content=answer))
 
     return {"answer": answer}
