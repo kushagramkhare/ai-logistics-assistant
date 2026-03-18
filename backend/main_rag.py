@@ -30,13 +30,39 @@ vector_store = FAISS.load_local(   #storing the vector embeddings locally
     allow_dangerous_deserialization=True
 )
 
-retriever = vector_store.as_retriever(search_kwargs={"k": 20}) #building a retriever tool which returns top 8 relevant chunks
+retriever = vector_store.as_retriever(
+    search_type="mmr",
+    search_kwargs={
+        "k": 20,           # still retrieve wide (since DB is big)
+        "fetch_k": 30,     # candidates before diversity selection
+        "lambda_mult": 0.7 # balance relevance vs diversity (0.5–0.8 is good)
+    }
+) #building a retriever tool which returns top 20 relevant chunks
 #as_retriever is a inbuilt langchain function
 
 model = ChatGoogleGenerativeAI( #LLM model used for query rewriting and giving final responses
     model="gemini-2.5-flash",
     temperature=0 #so that the model is deterministic and doesnt hallucinate
 )
+"""
+Adding a preload fxn
+it is observed that it takes 25secs for the system to start taking user input
+for reducing that we will be using this preload fxn
+this fucntion will load everything in the server beforehand, so that when a user uses it there is no need for doing it again and again for every user separately.
+"""
+def preload():
+    print("🔄 Preloading system...")
+
+    # force FAISS + embeddings to load
+    _ = retriever
+
+    # warm up LLM (optional but useful)
+    try:
+        model.invoke("hi")
+    except:
+        pass
+
+    print("✅ System ready.")
 
 """
 Function for rewriting a query according to the chat history
@@ -124,6 +150,7 @@ agent = create_agent( #creating the agent using the model and tool which were de
 """
 Taking input and generating responses!
 """
+preload()
 
 """
 if __name__ == "__main__":
