@@ -21,5 +21,6 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           # Use "git subtree" to push only the "backend/" folder to your Hugging Face Space
-          git subtree push --prefix backend https://kushagramkhare:${HF_TOKEN}@huggingface.co/spaces/kushagramkhare/institute_RAG_assistant main --force
+          git subtree push --prefix backend https://kushagramkhare:${HF_TOKEN}@huggingface.co/spaces/kushagramkhare/institute_RAG_assistant main
+
 
