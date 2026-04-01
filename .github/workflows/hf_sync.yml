@@ -1,0 +1,25 @@
+name: Sync to Hugging Face hub
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'  # Only sync when something in backend/ changes
+
+  # Allow manual trigger from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  sync-to-hub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          lfs: true
+      - name: Push to hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # Use "git subtree" to push only the "backend/" folder to your Hugging Face Space
+          git subtree push --prefix backend https://kushagramkhare:${HF_TOKEN}@huggingface.co/spaces/kushagramkhare/institute_RAG_assistant main --force
+
