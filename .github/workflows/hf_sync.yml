@@ -1,0 +1,28 @@
+name: Sync to Hugging Face hub
+on:
+  push:
+    branches: [main]
+
+  # Allow manual trigger from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  sync-to-hub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          lfs: true
+      - name: Push to hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # 1. Create a local branch that only contains the 'backend' folder
+          git subtree split --prefix backend -b hf-sync-branch
+          
+          # 2. Force push THAT branch directly to the Hugging Face 'main' branch
+          git push https://kushagramkhare:${HF_TOKEN}@huggingface.co/spaces/kushagramkhare/institute_RAG_assistant hf-sync-branch:main --force
+
+
+

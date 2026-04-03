@@ -9,9 +9,6 @@ venv/
 __pycache__/
 *.pyc
 
-# FAISS index files (optional but recommended)
-faiss_store/
-
 # OS junk
 .DS_Store
 Thumbs.db

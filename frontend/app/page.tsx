@@ -26,7 +26,8 @@ export default function Home() {
     setInput("");
     setLoading(true);
 
-    const response = await fetch("http://127.0.0.1:8000/chat", {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
+    const response = await fetch(`${backendUrl}/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -59,7 +60,6 @@ export default function Home() {
         AI Logistics Assistant
       </div>
 
-      
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-5 bg-[#020617]">
 
         {messages.map((msg, i) => {
@@ -80,11 +80,10 @@ export default function Home() {
               className={`flex ${isUser ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`px-4 py-3 rounded-2xl max-w-[75%] text-sm whitespace-pre-wrap ${
-                  isUser
+                className={`px-4 py-3 rounded-2xl max-w-[75%] text-sm whitespace-pre-wrap ${isUser
                     ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-br-none"
                     : "bg-[#111827] text-gray-200 border border-gray-700 rounded-bl-none"
-                }`}
+                  }`}
               >
                 {/* MAIN CONTENT */}
                 {isUser ? (

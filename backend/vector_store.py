@@ -66,18 +66,46 @@ text_splitter = RecursiveCharacterTextSplitter(
 split_texts = []
 split_metadatas = []
 
-for text, meta in zip(texts, metadatas):
+print(f"Splitting {len(texts)} documents into chunks...")
+for i, (text, meta) in enumerate(zip(texts, metadatas)):
     chunks = text_splitter.split_text(text)
     split_texts.extend(chunks)
     split_metadatas.extend([meta] * len(chunks))
+    if (i + 1) % 500 == 0:
+        print(f"Progress: Splitted {i+1}/{len(texts)} documents...")
+
+print(f"Total chunks created: {len(split_texts)}")
+
 
 embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
-vector_store = FAISS.from_texts(
-    texts=split_texts,
-    embedding=embeddings,
-    metadatas=split_metadatas
-)
+print(f"Starting vector building for {len(split_texts)} chunks...")
+
+# Process in batches to track progress
+batch_size = 100
+vector_store = None
+
+for i in range(0, len(split_texts), batch_size):
+    batch_texts = split_texts[i:i + batch_size]
+    batch_metadatas = split_metadatas[i:i + batch_size]
+    
+    if vector_store is None:
+        vector_store = FAISS.from_texts(
+            texts=batch_texts,
+            embedding=embeddings,
+            metadatas=batch_metadatas
+        )
+    else:
+        vector_store.add_texts(
+            texts=batch_texts,
+            metadatas=batch_metadatas
+        )
+    
+    current_progress = min(i + batch_size, len(split_texts))
+    print(f"Building vectors: {current_progress}/{len(split_texts)} chunks completed...")
+
+print("Vector building complete! Saving store...")
 vector_store.save_local("faiss_store")
+print("All done!")
