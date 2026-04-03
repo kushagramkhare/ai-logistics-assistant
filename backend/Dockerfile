@@ -8,7 +8,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     git \
     git-lfs \
-    libgl1-mesa-glx \
+    libgl1 \
     poppler-utils \
     tesseract-ocr \
     && git lfs install \
