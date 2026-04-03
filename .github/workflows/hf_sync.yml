@@ -27,16 +27,23 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-
-          # create branch with only backend folder
-          git subtree split --prefix backend -b hf-sync-branch
-
-          # add HF remote
-          git remote add space-remote https://kushagramkhare:${HF_TOKEN}@huggingface.co/spaces/kushagramkhare/institute_RAG_assistant || \
-          git remote set-url space-remote https://kushagramkhare:${HF_TOKEN}@huggingface.co/spaces/kushagramkhare/institute_RAG_assistant
-
-          # push actual LFS blobs
-          git lfs push space-remote --all
-
-          # push commit history
-          git push space-remote hf-sync-branch:main --force
+          # 1. Manually Extract the backend folder
+          mkdir -p ../deploy_space
+          cp -r backend/* ../deploy_space/
+          
+          # 2. Enter the folder and initialize it as a new repo
+          cd ../deploy_space
+          git init
+          git checkout -b main
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add .
+          git commit -m "Direct deploy: Full files (No pointers)"
+          
+          # 3. Add HF Remote
+          git remote add space-remote https://kushagramkhare:${HF_TOKEN}@huggingface.co/spaces/kushagramkhare/institute_RAG_assistant
+          
+          # 4. CRUCIAL: Force-Push the REAL files
+          git lfs install
+          # We push the local 'main' branch to the remote 'main' branch
+          git push space-remote main --force
