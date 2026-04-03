@@ -24,6 +24,16 @@ RUN pip install --no-cache-dir -r req.txt
 # Copy the rest of the application code
 COPY . .
 
+# Verify that files are real (should be > 1KB, pointers are < 200 bytes)
+RUN echo "=== VERIFYING FILE SIZES (LFS Check) ===" && \
+    find . -name "*.faiss" -o -name "*.pkl" -o -name "*.json" | \
+    xargs ls -lh || echo "No large files found to check"
+
+# Check if the first 20 bytes of index.faiss start with "version" (which means it's a pointer)
+RUN head -c 100 backend/faiss_store/index.faiss | grep "version https" && \
+    echo "❌ ERROR: Found LFS pointer instead of real file!" && exit 1 || \
+    echo "✅ SUCCESS: Real binary file detected."
+
 # Expose the port Hugging Face Spaces expects
 EXPOSE 7860
 
