@@ -18,7 +18,11 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # Use "git subtree" to push only the "backend/" folder to your Hugging Face Space
-          git subtree push --prefix backend https://kushagramkhare:${HF_TOKEN}@huggingface.co/spaces/kushagramkhare/institute_RAG_assistant main
+          # 1. Create a local branch that only contains the 'backend' folder
+          git subtree split --prefix backend -b hf-sync-branch
+          
+          # 2. Force push THAT branch directly to the Hugging Face 'main' branch
+          git push https://kushagramkhare:${HF_TOKEN}@huggingface.co/spaces/kushagramkhare/institute_RAG_assistant hf-sync-branch:main --force
+
 
 
