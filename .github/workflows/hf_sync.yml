@@ -18,10 +18,6 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-                - name: Push to hub
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
           # 1. Create a local branch that only contains the 'backend' folder
           git subtree split --prefix backend -b hf-sync-branch
           
