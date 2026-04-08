@@ -26,7 +26,7 @@ export default function Home() {
     setInput("");
     setLoading(true);
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:7860";
     const response = await fetch(`${backendUrl}/chat`, {
       method: "POST",
       headers: {
@@ -81,8 +81,8 @@ export default function Home() {
             >
               <div
                 className={`px-4 py-3 rounded-2xl max-w-[75%] text-sm whitespace-pre-wrap ${isUser
-                    ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-br-none"
-                    : "bg-[#111827] text-gray-200 border border-gray-700 rounded-bl-none"
+                  ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-br-none"
+                  : "bg-[#111827] text-gray-200 border border-gray-700 rounded-bl-none"
                   }`}
               >
                 {/* MAIN CONTENT */}

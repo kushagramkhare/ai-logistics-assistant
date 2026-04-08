@@ -1,28 +1,102 @@
-name: Sync to Hugging Face hub
+name: Sync Backend to Hugging Face Space
+
 on:
   push:
     branches: [main]
+    paths:
+      - 'backend/**'
 
-  # Allow manual trigger from the Actions tab
   workflow_dispatch:
+
+env:
+  HF_REPO: kushagramkhare/institute_RAG_assistant
 
 jobs:
   sync-to-hub:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      # 1. Full clone with LFS so we have REAL binaries, not pointers
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           lfs: true
-      - name: Push to hub
+
+      - name: Ensure LFS files are real binaries
+        run: |
+          git lfs install
+          git lfs pull
+
+          echo "=== Verifying LFS files are real ==="
+          for f in backend/faiss_store/index.faiss backend/faiss_store/index.pkl backend/website_data.json; do
+            if [ -f "$f" ]; then
+              size=$(stat --printf="%s" "$f")
+              echo "$f → ${size} bytes"
+              if [ "$size" -lt 500 ]; then
+                echo "❌ $f looks like an LFS pointer (too small)!"
+                head -c 100 "$f"
+                exit 1
+              fi
+            else
+              echo "⚠️  $f not found, skipping"
+            fi
+          done
+          echo "✅ All LFS files verified as real binaries"
+
+      # 2. Clone the HF Space repo, wipe contents, copy backend in
+      - name: Push backend to Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # 1. Create a local branch that only contains the 'backend' folder
-          git subtree split --prefix backend -b hf-sync-branch
-          
-          # 2. Force push THAT branch directly to the Hugging Face 'main' branch
-          git push https://kushagramkhare:${HF_TOKEN}@huggingface.co/spaces/kushagramkhare/institute_RAG_assistant hf-sync-branch:main --force
+          set -e
 
+          # Configure git
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
 
+          # Skip downloading LFS on clone — we're overwriting everything anyway
+          GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 \
+            https://kushagramkhare:${HF_TOKEN}@huggingface.co/spaces/${HF_REPO} hf_space || {
+            # If repo is empty / first push, init a fresh one
+            mkdir -p hf_space && cd hf_space && git init
+            git remote add origin https://kushagramkhare:${HF_TOKEN}@huggingface.co/spaces/${HF_REPO}
+            cd ..
+          }
 
+          cd hf_space
+
+          # Install LFS inside the HF clone
+          git lfs install
+
+          # Wipe everything except .git
+          find . -maxdepth 1 ! -name '.git' ! -name '.' -exec rm -rf {} +
+
+          # Copy the backend folder contents (at root level for HF)
+          # Using cp -a to preserve file attributes
+          cp -a ../backend/. .
+
+          # Remove files that shouldn't go to HF
+          rm -rf .env tests/ scraper/ __pycache__ .pytest_cache venv/
+
+          # Track LFS files — this creates/updates .gitattributes automatically
+          git lfs track "faiss_store/index.faiss"
+          git lfs track "faiss_store/index.pkl"
+          git lfs track "website_data.json"
+          git lfs track "*.bin"
+
+          # Stage everything
+          git add -A
+
+          # Verify file sizes before commit
+          echo "=== File sizes in staging area ==="
+          ls -lh faiss_store/ 2>/dev/null || echo "No faiss_store yet"
+          ls -lh website_data.json 2>/dev/null || echo "No website_data.json yet"
+
+          # Commit and push
+          git commit -m "Sync backend from GitHub @ $(date -u +%Y-%m-%dT%H:%M:%SZ)" || echo "Nothing to commit"
+
+          # Push LFS objects FIRST — HF triggers a build on git push,
+          # so binaries must already be on the server before the commit lands
+          git lfs push origin main --all
+
+          git push origin main --force

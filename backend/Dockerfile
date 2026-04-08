@@ -1,24 +1,53 @@
 # Use an official lightweight Python image
 FROM python:3.11-slim
 
-# Set the working directory in the container
-WORKDIR /app
-
-# Install system dependencies (needed for FAISS and PDF processing)
+# Install system dependencies (needed for OCR and PDF processing)
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    tesseract-ocr \
-    && rm -rf /var/lib/apt/lists/*
+  libgl1 \
+  poppler-utils \
+  tesseract-ocr \
+  && rm -rf /var/lib/apt/lists/*
 
-# Copy the requirements file first for caching
-COPY req.txt .
+# Create non-root user — HF Spaces enforces UID 1000
+RUN useradd -m -u 1000 user
 
-# Install dependencies
-# Note: We use the CPU version of torch for the container to keep it smaller
-RUN pip install --no-cache-dir -r req.txt
+# Copy and install requirements as root (global install)
+COPY req.txt /tmp/req.txt
+RUN pip install --no-cache-dir -r /tmp/req.txt && rm /tmp/req.txt
 
-# Copy the rest of the application code
-COPY . .
+# Switch to non-root user BEFORE copying app code
+USER user
+
+# Set environment for the non-root user
+ENV HOME=/home/user \
+  PATH="/home/user/.local/bin:${PATH}" \
+  HF_HOME=/home/user/.cache/huggingface \
+  TRANSFORMERS_CACHE=/home/user/.cache/huggingface/hub
+
+WORKDIR /home/user/app
+
+# Copy application code with correct ownership
+COPY --chown=user:user . .
+
+# Verify that critical files are REAL binaries (not LFS pointers)
+# LFS files should be >1KB; pointers are <200 bytes
+RUN echo "=== VERIFYING FILE SIZES (LFS Check) ===" && \
+  for f in faiss_store/index.faiss faiss_store/index.pkl website_data.json; do \
+  if [ -f "$f" ]; then \
+  size=$(stat --printf="%s" "$f"); \
+  echo "$f → ${size} bytes"; \
+  if [ "$size" -lt 500 ]; then \
+  echo "❌ FATAL: $f is still an LFS pointer!"; \
+  head -c 200 "$f"; \
+  echo ""; \
+  echo "The GitHub Actions workflow must push real files, not pointers."; \
+  exit 1; \
+  fi; \
+  else \
+  echo "⚠️  $f not found (may be expected if not yet generated)"; \
+  fi; \
+  done && \
+  echo "✅ All critical files verified as real binaries."
 
 # Expose the port Hugging Face Spaces expects
 EXPOSE 7860

@@ -1,0 +1,6 @@
+# LFS tracking for large files (paths relative to backend root)
+faiss_store/index.faiss filter=lfs diff=lfs merge=lfs -text
+faiss_store/index.pkl filter=lfs diff=lfs merge=lfs -text
+website_data.json filter=lfs diff=lfs merge=lfs -text
+*.bin filter=lfs diff=lfs merge=lfs -text
+**/chroma.sqlite3 filter=lfs diff=lfs merge=lfs -text

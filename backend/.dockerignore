@@ -1,0 +1,28 @@
+# Git
+.git
+.gitattributes
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+
+# Testing 
+tests/
+
+# Scraper 
+scraper/
+
+# Environment
+.env
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db
