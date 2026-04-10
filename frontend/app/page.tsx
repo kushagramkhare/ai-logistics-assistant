@@ -112,18 +112,27 @@ export default function Home() {
                   <div className="mt-4 border-t border-gray-700 pt-2">
                     <p className="text-xs text-gray-400 mb-1">Sources</p>
 
-                    {sources.split("\n").map((src, idx) =>
-                      src.trim() ? (
+                    {sources.split("\n").map((src, idx) => {
+                      // Aggressively strip multiple bullets, numbers, asterisks, or spaces
+                      const cleanSrc = src.replace(/^[-*0-9.\s]+/, "").trim();
+                      if (!cleanSrc) return null;
+
+                      const absoluteUrl = cleanSrc.startsWith("http")
+                        ? cleanSrc
+                        : `https://${cleanSrc}`;
+
+                      return (
                         <a
                           key={idx}
-                          href={src.replace("- ", "").trim()}
+                          href={absoluteUrl}
                           target="_blank"
-                          className="block text-blue-400 text-sm hover:underline"
+                          rel="noopener noreferrer"
+                          className="block text-blue-400 text-sm hover:underline break-all"
                         >
-                          {src.replace("- ", "")}
+                          {cleanSrc}
                         </a>
-                      ) : null
-                    )}
+                      );
+                    })}
                   </div>
                 )}
               </div>
