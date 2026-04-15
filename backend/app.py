@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from main_rag import agent
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -29,22 +29,32 @@ def home():
 @app.post("/chat")
 def chat(q: Query):
 
-    messages = []
-
-    # 🔁 Convert frontend history → LangChain messages
+    # 🔥 Convert chat history into plain text
+    chat_history_text = ""
     for msg in q.history:
-        if msg["role"] == "user":
-            messages.append(HumanMessage(content=msg["content"]))
-        elif msg["role"] == "assistant":
-            messages.append(AIMessage(content=msg["content"]))
+        role = "User" if msg["role"] == "user" else "Assistant"
+        chat_history_text += f"{role}: {msg['content']}\n"
 
-    # ➕ Add current user question
-    messages.append(HumanMessage(content=q.question))
+    # 🔥 Inject history into query
+    final_query = f"""
+You are a helpful assistant.
 
-    # 🤖 Call your RAG agent
-    res = agent.invoke({"messages": messages})
+Conversation so far:
+{chat_history_text}
 
-    # 📤 Extract answer
-    answer = res["messages"][-1].text
+Now answer the latest question:
+User: {q.question}
+"""
+
+    # 🤖 Call agent with ONLY this query
+    res = agent.invoke({
+        "messages": [HumanMessage(content=final_query)]
+    })
+
+    # 📤 Extract answer safely
+    if isinstance(res, dict) and "messages" in res:
+        answer = res["messages"][-1].text
+    else:
+        answer = str(res)
 
     return {"answer": answer}
