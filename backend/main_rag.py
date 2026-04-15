@@ -85,8 +85,15 @@ Conversation History:
 Latest User Question:
 {latest_query}
 
-Rewrite the latest question into a clear, standalone search query.
-Do NOT answer it. Only rewrite.
+Rewrite the latest question into a clear, standalone question.
+
+IMPORTANT:
+- If the question depends on previous conversation, include relevant context.
+- Preserve important details like names, entities, or references.
+- If the user mentioned their name earlier, include it explicitly.
+- If no context is needed, keep it simple.
+
+Do NOT answer the question. Only rewrite it.
 """
     rewritten_query = model.invoke(prompt).content.strip()
     print("Query rewritten accorinding to chat history for better context:")
@@ -106,7 +113,7 @@ def f_logistics_search(query: str) -> str:
     """Search the local knowledge base and return relevant information with sources using soft relevance scoring."""
     
     # Step A: Retrieve
-    query = f_rewrite_query([], query)
+    #query = f_rewrite_query([], query)
     docs = retriever.invoke(query)
 
     if not docs:

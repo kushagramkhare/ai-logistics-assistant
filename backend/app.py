@@ -1,12 +1,12 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from main_rag import agent
-from langchain_core.messages import HumanMessage
+from main_rag import agent, f_rewrite_query
+from langchain_core.messages import HumanMessage, AIMessage
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# CORS (keep as is)
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,7 +18,7 @@ app.add_middleware(
 # Request model
 class Query(BaseModel):
     question: str
-    history: list = []   # coming from frontend
+    history: list = []
 
 
 @app.get("/")
@@ -29,26 +29,20 @@ def home():
 @app.post("/chat")
 def chat(q: Query):
 
-    # 🔥 Convert chat history into plain text
-    chat_history_text = ""
+    # 🔁 Convert history → LangChain messages
+    messages = []
     for msg in q.history:
-        role = "User" if msg["role"] == "user" else "Assistant"
-        chat_history_text += f"{role}: {msg['content']}\n"
+        if msg["role"] == "user":
+            messages.append(HumanMessage(content=msg["content"]))
+        else:
+            messages.append(AIMessage(content=msg["content"]))
 
-    # 🔥 Inject history into query
-    final_query = f"""
-You are a helpful assistant.
+    # 🔥 Use FULL history for rewriting
+    rewritten_query = f_rewrite_query(messages, q.question)
 
-Conversation so far:
-{chat_history_text}
-
-Now answer the latest question:
-User: {q.question}
-"""
-
-    # 🤖 Call agent with ONLY this query
+    # 🤖 Send ONLY rewritten query to agent
     res = agent.invoke({
-        "messages": [HumanMessage(content=final_query)]
+        "messages": [HumanMessage(content=rewritten_query)]
     })
 
     # 📤 Extract answer safely
