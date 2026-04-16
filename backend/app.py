@@ -29,18 +29,10 @@ def home():
 @app.post("/chat")
 def chat(q: Query):
 
-    # 🔁 Convert history → LangChain messages
-    messages = []
-    for msg in q.history:
-        if msg["role"] == "user":
-            messages.append(HumanMessage(content=msg["content"]))
-        else:
-            messages.append(AIMessage(content=msg["content"]))
+    # 🔥 Rewrite ONLY current query (stateless optimization)
+    rewritten_query = f_rewrite_query(q.question)
 
-    # 🔥 Use FULL history for rewriting
-    rewritten_query = f_rewrite_query(messages, q.question)
-
-    # 🤖 Send ONLY rewritten query to agent
+    # 🤖 Send optimized query to agent
     res = agent.invoke({
         "messages": [HumanMessage(content=rewritten_query)]
     })

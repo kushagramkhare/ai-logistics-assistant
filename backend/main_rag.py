@@ -69,45 +69,17 @@ Function for rewriting a query according to the chat history
 appends the user queries and LLM responses and sends it to an LLM
 LLM tries to make the current query sound more contextual and relevant to the previous queries for better retrieval
 """
-def f_rewrite_query(chat_history, latest_query): 
-    history_text = "\n".join(
-        [f"User: {m.content}" if isinstance(m, HumanMessage)
-         else f"Assistant: {m.content}"
-         for m in chat_history[-6:]]
-    )
 
+def f_rewrite_query(latest_query):
     prompt = f"""
-You are a query rewriting assistant.
+Rewrite into a clear, keyword-rich search query.
+Expand abbreviations and remove filler words.
+Do not answer.
 
-Conversation History:
-{history_text}
-
-Latest User Question:
 {latest_query}
-
-Rewrite the latest question into a clear, standalone question.
-
-IMPORTANT:
-- If the question depends on previous conversation, include relevant context.
-- Preserve important details like names, entities, or references.
-- If the user mentioned their name earlier, include it explicitly.
-- If no context is needed, keep it simple.
-
-Do NOT answer the question. Only rewrite it.
 """
-    rewritten_query = model.invoke(prompt).content.strip()
-    print("Query rewritten accorinding to chat history for better context:")
-    print(rewritten_query)
-    return rewritten_query
+    return model.invoke(prompt).content.strip()
 
-
-"""
-The tool below is the main tool of the entire pipeline.
-This tool uses the retriever tool for receiving the chunks of the content that is relevant to the query.
-These chunks are saved in the 'docs' list
-If the list is empty then the model will respond saying no relevant info available
-Then the docs list is separated into actual information and source links(metadata)
-"""
 @tool
 def f_logistics_search(query: str) -> str:
     """Search the local knowledge base and return relevant information with sources using soft relevance scoring."""
