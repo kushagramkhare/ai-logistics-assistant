@@ -30,7 +30,7 @@ def home():
 def chat(q: Query):
 
     # 🔁 Convert history → LangChain messages
-    """messages = []
+    messages = []
     for msg in q.history:
         if msg["role"] == "user":
             messages.append(HumanMessage(content=msg["content"]))
@@ -43,19 +43,6 @@ def chat(q: Query):
     # 🤖 Send ONLY rewritten query to agent
     res = agent.invoke({
         "messages": [HumanMessage(content=rewritten_query)]
-    })
-
-    # 📤 Extract answer safely
-    if isinstance(res, dict) and "messages" in res:
-        answer = res["messages"][-1].content
-    else:
-        answer = str(res)
-
-    return {"answer": answer}"""
-
-    # ❌ No history, no rewriting
-    res = agent.invoke({
-        "messages": [HumanMessage(content=q.question)]
     })
 
     # 📤 Extract answer safely
