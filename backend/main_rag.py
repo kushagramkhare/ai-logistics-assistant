@@ -33,8 +33,8 @@ vector_store = FAISS.load_local(   #storing the vector embeddings locally
 retriever = vector_store.as_retriever(
     search_type="mmr",
     search_kwargs={
-        "k": 20,           # still retrieve wide (since DB is big)
-        "fetch_k": 30,     # candidates before diversity selection
+        "k": 8,           # still retrieve wide (since DB is big)
+        "fetch_k": 20,     # candidates before diversity selection
         "lambda_mult": 0.7 # balance relevance vs diversity (0.5–0.8 is good)
     }
 ) #building a retriever tool which returns top 20 relevant chunks
