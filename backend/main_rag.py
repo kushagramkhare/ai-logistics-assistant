@@ -35,7 +35,7 @@ retriever = vector_store.as_retriever(
     search_kwargs={
         "k": 8,           # still retrieve wide (since DB is big)
         "fetch_k": 20,     # candidates before diversity selection
-        "lambda_mult": 0.7 # balance relevance vs diversity (0.5–0.8 is good)
+        "lambda_mult": 0.8 # balance relevance vs diversity (0.5–0.8 is good)
     }
 ) #building a retriever tool which returns top 20 relevant chunks
 #as_retriever is a inbuilt langchain function
