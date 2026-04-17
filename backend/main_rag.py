@@ -131,10 +131,6 @@ agent = create_agent( #creating the agent using the model and tool which were de
     system_prompt=(
         "You are a helpful assistant.\n\n"
         "Always use the logistics_search tool to find facts.\n\n"
-        "If the question is YES/NO:\n"
-        "- First determine the answer (Yes or No)\n"
-        "- Then justify using retrieved information\n\n"
-        
         "Answer using this structure:\n"
         "1. Title (based on the query)\n"
         "2. Key Information (bullet points)\n"
