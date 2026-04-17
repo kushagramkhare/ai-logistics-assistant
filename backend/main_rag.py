@@ -35,7 +35,7 @@ retriever = vector_store.as_retriever(
     search_kwargs={
         "k": 8,           # still retrieve wide (since DB is big)
         "fetch_k": 20,     # candidates before diversity selection
-        "lambda_mult": 0.8 # balance relevance vs diversity (0.5–0.8 is good)
+        "lambda_mult": 0.5 # balance relevance vs diversity (0.5–0.8 is good)
     }
 ) #building a retriever tool which returns top 20 relevant chunks
 #as_retriever is a inbuilt langchain function
@@ -116,6 +116,10 @@ agent = create_agent( #creating the agent using the model and tool which were de
     system_prompt=(
         "You are a helpful assistant.\n\n"
         "Always use the logistics_search tool to find facts.\n\n"
+        "If the question is YES/NO:\n"
+        "- First determine the answer (Yes or No)\n"
+        "- Then justify using retrieved information\n\n"
+        
         "Answer using this structure:\n"
         "1. Title (based on the query)\n"
         "2. Key Information (bullet points)\n"
