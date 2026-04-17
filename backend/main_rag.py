@@ -35,7 +35,7 @@ retriever = vector_store.as_retriever(
     search_kwargs={
         "k": 8,           # still retrieve wide (since DB is big)
         "fetch_k": 20,     # candidates before diversity selection
-        "lambda_mult": 0.5 # balance relevance vs diversity (0.5–0.8 is good)
+        "lambda_mult": 0.7 # balance relevance vs diversity (0.5–0.8 is good)
     }
 ) #building a retriever tool which returns top 20 relevant chunks
 #as_retriever is a inbuilt langchain function
@@ -72,11 +72,24 @@ LLM tries to make the current query sound more contextual and relevant to the pr
 
 def f_rewrite_query(latest_query):
     prompt = f"""
-Rewrite into a clear, keyword-rich search query.
-Expand abbreviations and remove filler words.
-Do not answer.
+Rewrite the user query into a concise, retrieval-optimized search query.
 
+Rules:
+- Preserve full intent (do NOT lose meaning)
+- Extract key entities (names, topics, departments, etc.)
+- Remove filler words and unnecessary phrasing
+- Use keyword-style phrasing, not full sentences
+- Keep important relationships (e.g., "X belongs to Y", "X vs Y", "X requirements")
+
+Examples:
+"Which department does Sunil Lohar belong to?" → "Sunil Lohar department"
+"What are the eligibility criteria for BTech?" → "BTech eligibility criteria requirements"
+"Compare CSE and IT branches" → "CSE vs IT comparison differences"
+
+User query:
 {latest_query}
+
+Optimized query:
 """
     return model.invoke(prompt).content.strip()
 
